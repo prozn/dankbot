@@ -1,0 +1,25 @@
+; Each section in this file identifies a slack channel and corresponding search criteria.
+; You can specify the same channel multiple times but the section ID cannot be duplicated.
+;
+; Section names are not important, all sections will be iterated.
+;
+; All sections require the following parameteres, otherwise the bot will fail to start:
+;
+; zkill_search_type        (character/corporation/alliance)
+; zkill_search_id          (zKill ID for the search type)
+; channel_name             (name of the Slack channel to post kills to)
+; post_solo_kills          (true/false)
+; post_expensive_kills     (true/false)
+; include_capsules         (true/false)
+; expensive_kill_limit     (Minimum value for high value kills)
+; minimum_capsule_value    (Capsules below this value are ignored)
+
+[Perkone]
+zkill_search_type=corporation
+zkill_search_id=1000014
+channel_name=example_channel
+post_solo_kills=true
+post_expensive_kills=true
+include_capsules=true
+expensive_kill_limit=1000000000
+minimum_capsule_value=50000000

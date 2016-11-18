@@ -1,0 +1,9 @@
+[slack]
+slack_bot_name=
+slack_bot_icon=
+slack_api_token=
+
+[killboard]
+kill_url=https://zkillboard.com/kill/
+ship_renders=https://image.eveonline.com/Render/
+capsule_type_ids=670,33328
