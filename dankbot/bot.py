@@ -59,12 +59,16 @@ def prepareKillmail(package):
         'id': package.get('killID'),
         'solo': True if len(attackerList) == 1 else False,
         'victim': {
-            'character': package.get('killmail', {}).get('victim', {}).get('character', {}).get('id_str'),
+            'character': package.get('killmail', {}).get('victim', {})
+                                .get('character', {}).get('id_str'),
             'name': package.get('killmail', {}).get('victim', {}).get('character', {}).get('name'),
-            'corporation': package.get('killmail', {}).get('victim', {}).get('corporation', {}).get('id_str'),
-            'alliance': package.get('killmail', {}).get('victim', {}).get('alliance', {}).get('id_str'),
+            'corporation': package.get('killmail', {}).get('victim', {})
+                                  .get('corporation', {}).get('id_str'),
+            'alliance': package.get('killmail', {}).get('victim', {})
+                                                   .get('alliance', {}).get('id_str'),
             'ship': package.get('killmail', {}).get('victim', {}).get('shipType', {}).get('id_str'),
-            'shipName': package.get('killmail', {}).get('victim', {}).get('shipType', {}).get('name')
+            'shipName': package.get('killmail', {}).get('victim', {})
+                                                   .get('shipType', {}).get('name')
         },
         'value': package.get('zkb', {}).get('totalValue'),
         'attackers': attackerList,
@@ -76,15 +80,18 @@ def prepareKillmail(package):
 def cycleChannels(km):
     for channel in searches.sections():
         print("Searching channel %s" % channel)
-        if searches.getboolean(channel, 'include_capsules') is False and km['victim']['ship'] in config.get('killboard', 'capsule_type_ids').split(','):
+        if searches.getboolean(channel, 'include_capsules') is False and \
+                km['victim']['ship'] in config.get('killboard', 'capsule_type_ids').split(','):
             print("Kill is a pod and pods are ignored by config.")
             continue
 
-        if km['victim']['ship'] in config.get('killboard', 'capsule_type_ids').split(',') and km['value'] < searches.getfloat(channel, 'minimum_capsule_value'):
+        if km['victim']['ship'] in config.get('killboard', 'capsule_type_ids').split(',') and \
+                km['value'] < searches.getfloat(channel, 'minimum_capsule_value'):
             print("Kill is a pod and value is below minimum capsule value in config.")
             continue
 
-        if any(a[searches.get(channel, 'zkill_search_type')] == searches.get(channel, 'zkill_search_id') for a in km['attackers']):
+        if any(a[searches.get(channel, 'zkill_search_type')]
+                == searches.get(channel, 'zkill_search_id') for a in km['attackers']):
             if km['solo'] is True:
                 sendKill('solo', channel, km)
                 continue
@@ -93,7 +100,7 @@ def cycleChannels(km):
                 sendKill('expensive', channel, km)
                 continue
 
-            print("Matching kill found for channel (%s) but it was not solo or expsneive." % channel)
+            print("Matching kill found for channel (%s) but it was not solo or expsneive" % channel)
 
 
 def sendKill(type, searchsection, km):
@@ -101,12 +108,14 @@ def sendKill(type, searchsection, km):
         fields = [
             {
                 'title': 'Involved Players',
-                'value': '\n'.join(["{name} ({shipName})".format(**a) for a in km['attackers'] if a[searches.get(searchsection, 'zkill_search_type')] == searches.get(searchsection, 'zkill_search_id')]),
+                'value': '\n'.join(["{name} ({shipName})".format(**a) for a in km['attackers']
+                                   if a[searches.get(searchsection, 'zkill_search_type')]
+                                   == searches.get(searchsection, 'zkill_search_id')]),
                 'short': True
             },
             {
                 'title': 'Final Blow',
-                'value': "{name} ({shipName})".format(km['finalBlow']),
+                'value': "{name} ({shipName})".format(**km['finalBlow']),
                 'short': True
             }
         ]
@@ -125,12 +134,16 @@ def sendKill(type, searchsection, km):
         ]
 
     attachment_payload = [{
-        'fallback': 'Alert!!! %s died in a %s worth %s -- %s%s' % (km['victim']['name'], km['victim']['shipName'], millify(km['value']), config.get('killboard', 'kill_url'), km['id']),
+        'fallback': 'Alert!!! %s died in a %s worth %s -- %s%s' % (
+            km['victim']['name'], km['victim']['shipName'], millify(km['value']),
+            config.get('killboard', 'kill_url'), km['id']),
         'color': 'danger',
-        'title': '%s died in a %s worth %s' % (km['victim']['name'], km['victim']['shipName'], millify(km['value'])),
+        'title': '%s died in a %s worth %s' % (km['victim']['name'], km['victim']['shipName'],
+                                               millify(km['value'])),
         'title_link': '%s%s' % (config.get('killboard', 'kill_url'), km['id']),
         'fields': fields,
-        'thumb_url': '%s%s_256.png' % (config.get('killboard', 'ship_renders'), km['victim']['ship'])
+        'thumb_url': '%s%s_256.png' % (config.get('killboard', 'ship_renders'),
+                                       km['victim']['ship'])
     }]
 
     sc.api_call(
