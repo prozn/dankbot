@@ -18,17 +18,24 @@ sc = SlackClient(SLACK_API_TOKEN)
 
 def main():
     while True:
-        try:
-            r = requests.get('https://redisq.zkillboard.com/listen.php')
-            response = r.json()
-            if response.get('package') is None:
-                print('No killmail received.')
-            else:
-                cycleChannels(prepareKillmail(response.get('package')))
+        if getRedisq():
             time.sleep(0.5)
-        except Exception:
-            print("Error occurred calling zkill rdisq")
+        else:
             time.sleep(5)
+
+
+def getRedisq():
+    try:
+        r = requests.get('https://redisq.zkillboard.com/listen.php')
+        response = r.json()
+        if response.get('package') is None:
+            print('No killmail received.')
+        else:
+            cycleChannels(prepareKillmail(response.get('package')))
+        return True
+    except Exception:
+        print("Error occurred calling zkill rdisq")
+        return False
 
 
 def prepareKillmail(package):
@@ -59,16 +66,12 @@ def prepareKillmail(package):
         'id': package.get('killID'),
         'solo': True if len(attackerList) == 1 else False,
         'victim': {
-            'character': package.get('killmail', {}).get('victim', {})
-                                .get('character', {}).get('id_str'),
+            'character': package.get('killmail', {}).get('victim', {}).get('character', {}).get('id_str'),
             'name': package.get('killmail', {}).get('victim', {}).get('character', {}).get('name'),
-            'corporation': package.get('killmail', {}).get('victim', {})
-                                  .get('corporation', {}).get('id_str'),
-            'alliance': package.get('killmail', {}).get('victim', {})
-                                                   .get('alliance', {}).get('id_str'),
+            'corporation': package.get('killmail', {}).get('victim', {}).get('corporation', {}).get('id_str'),
+            'alliance': package.get('killmail', {}).get('victim', {}).get('alliance', {}).get('id_str'),
             'ship': package.get('killmail', {}).get('victim', {}).get('shipType', {}).get('id_str'),
-            'shipName': package.get('killmail', {}).get('victim', {})
-                                                   .get('shipType', {}).get('name')
+            'shipName': package.get('killmail', {}).get('victim', {}).get('shipType', {}).get('name')
         },
         'value': package.get('zkb', {}).get('totalValue'),
         'attackers': attackerList,
@@ -138,12 +141,10 @@ def sendKill(type, searchsection, km):
             km['victim']['name'], km['victim']['shipName'], millify(km['value']),
             config.get('killboard', 'kill_url'), km['id']),
         'color': 'danger',
-        'title': '%s died in a %s worth %s' % (km['victim']['name'], km['victim']['shipName'],
-                                               millify(km['value'])),
+        'title': '%s died in a %s worth %s' % (km['victim']['name'], km['victim']['shipName'], millify(km['value'])),
         'title_link': '%s%s' % (config.get('killboard', 'kill_url'), km['id']),
         'fields': fields,
-        'thumb_url': '%s%s_256.png' % (config.get('killboard', 'ship_renders'),
-                                       km['victim']['ship'])
+        'thumb_url': '%s%s_256.png' % (config.get('killboard', 'ship_renders'), km['victim']['ship'])
     }]
 
     sc.api_call(
