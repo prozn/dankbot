@@ -27,3 +27,4 @@ Todo
 4. Stop the bot posting the same kill to the same channel more than once.
 5. Ability to specify an array of characters to monitor rather than just one.
 6. Option to post all super kills
+7. Option to add losses to feed

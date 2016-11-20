@@ -4,8 +4,6 @@ import configparser
 
 from slackclient import SlackClient
 
-from dankbot.helpers import millify
-
 config = configparser.SafeConfigParser()
 config.read("config.ini")
 
@@ -138,10 +136,11 @@ def sendKill(type, searchsection, km):
 
     attachment_payload = [{
         'fallback': 'Alert!!! %s died in a %s worth %s -- %s%s' % (
-            km['victim']['name'], km['victim']['shipName'], millify(km['value']),
+            km['victim']['name'], km['victim']['shipName'], "{:,}".format(round(km['value'])),
             config.get('killboard', 'kill_url'), km['id']),
         'color': 'danger',
-        'title': '%s died in a %s worth %s' % (km['victim']['name'], km['victim']['shipName'], millify(km['value'])),
+        'title': '%s died in a %s worth %s ISK' % (km['victim']['name'], km['victim']['shipName'],
+                                                   "{:,}".format(round(km['value']))),
         'title_link': '%s%s' % (config.get('killboard', 'kill_url'), km['id']),
         'fields': fields,
         'thumb_url': '%s%s_256.png' % (config.get('killboard', 'ship_renders'), km['victim']['ship'])
