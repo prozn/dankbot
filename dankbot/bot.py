@@ -136,11 +136,11 @@ def sendKill(type, searchsection, km):
 
     attachment_payload = [{
         'fallback': 'Alert!!! %s died in a %s worth %s -- %s%s' % (
-            km['victim']['name'], km['victim']['shipName'], "{:,}".format(round(km['value'])),
+            km['victim']['name'], km['victim']['shipName'], "{:,.0f}".format(km['value']),
             config.get('killboard', 'kill_url'), km['id']),
         'color': 'danger',
         'title': '%s died in a %s worth %s ISK' % (km['victim']['name'], km['victim']['shipName'],
-                                                   "{:,}".format(round(km['value']))),
+                                                   "{:,.0f}".format(km['value'])),
         'title_link': '%s%s' % (config.get('killboard', 'kill_url'), km['id']),
         'fields': fields,
         'thumb_url': '%s%s_256.png' % (config.get('killboard', 'ship_renders'), km['victim']['ship'])
