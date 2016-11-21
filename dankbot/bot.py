@@ -153,7 +153,7 @@ def sendKill(killtype, searchsection, km):
         fields = [
             {
                 'title': 'Losing alliance/corp',
-                'value': km['victim'].get('allianceName', km['victim'].get('corpName')),
+                'value': "%s/%s" % (km['victim'].get('corpName'), km['victim'].get('allianceName')),
                 'short': True
             },
             {
