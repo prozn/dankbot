@@ -67,9 +67,15 @@ def prepareKillmail(package):
             'character': package.get('killmail', {}).get('victim', {}).get('character', {}).get('id_str'),
             'name': package.get('killmail', {}).get('victim', {}).get('character', {}).get('name'),
             'corporation': package.get('killmail', {}).get('victim', {}).get('corporation', {}).get('id_str'),
+            'corpName': package.get('killmail', {}).get('victim', {}).get('corporation', {}).get('name'),
             'alliance': package.get('killmail', {}).get('victim', {}).get('alliance', {}).get('id_str'),
+            'allianceName': package.get('killmail', {}).get('victim', {}).get('alliance', {}).get('name', 'None'),
             'ship': package.get('killmail', {}).get('victim', {}).get('shipType', {}).get('id_str'),
             'shipName': package.get('killmail', {}).get('victim', {}).get('shipType', {}).get('name')
+        },
+        'location': {
+            'id': package.get('killmail', {}).get('solarSystem', {}).get('id_str'),
+            'name': package.get('killmail', {}).get('solarSystem', {}).get('name')
         },
         'value': package.get('zkb', {}).get('totalValue'),
         'attackers': attackerList,
@@ -109,9 +115,13 @@ def cycleChannels(km):
 
             print("Matching kill found for channel (%s) but it was not solo or expsneive" % channel)
 
+        if km['victim']['ship'] in config.get('killboard', 'super_type_ids').split(',') and \
+                searches.getboolean(channel, 'post_all_super_kills'):
+            sendKill('super', channel, km)
 
-def sendKill(type, searchsection, km):
-    if type == "expensive":
+
+def sendKill(killtype, searchsection, km):
+    if killtype == "expensive":
         fields = [
             {
                 'title': 'Involved Players',
@@ -126,7 +136,7 @@ def sendKill(type, searchsection, km):
                 'short': True
             }
         ]
-    elif type == "solo":
+    elif killtype == "solo":
         fields = [
             {
                 'title': 'Killer',
@@ -139,18 +149,41 @@ def sendKill(type, searchsection, km):
                 'short': True
             }
         ]
+    elif killtype == "super":
+        fields = [
+            {
+                'title': 'Losing alliance/corp',
+                'value': km['victim'].get('allianceName', km['victim'].get('corpName')),
+                'short': True
+            },
+            {
+                'title': 'Killer',
+                'value': "%s (%s)" % (km['finalBlow']['name'],
+                                      km['finalBlow'].get('allianceName', km['finalBlow'].get('corpName'))),
+                'short': True
+            },
+            {
+                'title': 'Location',
+                'value': km['location']['name'],
+                'short': True
+            }
+        ]
 
-    attachment_payload = [{
+    attachment_payload = {
         'fallback': 'Alert!!! %s died in a %s worth %s -- %s%s' % (
             km['victim']['name'], km['victim']['shipName'], "{:,.0f}".format(km['value']),
             config.get('killboard', 'kill_url'), km['id']),
-        'color': 'danger',
+        'color': 'danger' if killtype != 'super' else 'warning',
+        'pretext': "*Solo Kill!!!*" if km['solo'] else "*Dank Frag!!!*",
         'title': '%s died in a %s worth %s ISK' % (km['victim']['name'], km['victim']['shipName'],
                                                    "{:,.0f}".format(km['value'])),
         'title_link': '%s%s' % (config.get('killboard', 'kill_url'), km['id']),
         'fields': fields,
         'thumb_url': '%s%s_256.png' % (config.get('killboard', 'ship_renders'), km['victim']['ship'])
-    }]
+    }
+
+    if killtype == "super":
+        attachment_payload.update({'footer': 'This is a generic super kill.'})
 
     sc.api_call(
         "chat.postMessage",
@@ -158,8 +191,7 @@ def sendKill(type, searchsection, km):
         username=config.get('slack', 'slack_bot_name'),
         channel=searches.get(searchsection, 'channel_name'),
         icon_emoji=config.get('slack', 'slack_bot_icon'),
-        attachments=attachment_payload,
-        text="*Solo Kill!!!*" if km['solo'] else "*Dank Frag!!!*"
+        attachments=[attachment_payload]
     )
     print("Kill sent to slack...")
 
