@@ -32,7 +32,7 @@ def getRedisq():
             cycleChannels(prepareKillmail(response.get('package')))
         return True
     except Exception:
-        print("Error occurred calling zkill rdisq")
+        print("Error occurred calling zkill redisq")
         return False
 
 
@@ -79,8 +79,13 @@ def prepareKillmail(package):
 
 
 def cycleChannels(km):
+    sentchannels = []
     for channel in searches.sections():
         print("Searching channel %s" % channel)
+        if searches.get(channel, 'channel_name') in sentchannels:
+            print("Killmail has already been sent to channel %s, skipping." % searches.get(channel, 'channel_name'))
+            continue
+
         if searches.getboolean(channel, 'include_capsules') is False and \
                 km['victim']['ship'] in config.get('killboard', 'capsule_type_ids').split(','):
             print("Kill is a pod and pods are ignored by config.")
@@ -95,6 +100,7 @@ def cycleChannels(km):
                 in searches.get(channel, 'zkill_search_id').split(',') for a in km['attackers']):
             if km['solo'] is True:
                 sendKill('solo', channel, km)
+                sentchannels.append(searches.get(channel, 'channel_name'))
                 continue
 
             if km['value'] >= searches.getfloat(channel, 'expensive_kill_limit'):
