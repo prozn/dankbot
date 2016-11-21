@@ -92,7 +92,7 @@ def cycleChannels(km):
             continue
 
         if any(a[searches.get(channel, 'zkill_search_type')]
-                == searches.get(channel, 'zkill_search_id') for a in km['attackers']):
+                in searches.get(channel, 'zkill_search_id').split(',') for a in km['attackers']):
             if km['solo'] is True:
                 sendKill('solo', channel, km)
                 continue

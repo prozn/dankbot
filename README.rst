@@ -22,7 +22,7 @@ Todo
 ====
 
 1. Clean up project and make ready for setuptools
-2. Better config file storeage... ie. not in project directory.
+2. Better config file storage... ie. not in project directory.
 3. Ability to reload config files.
 4. Stop the bot posting the same kill to the same channel more than once.
 5. Ability to specify an array of characters to monitor rather than just one.

@@ -6,7 +6,7 @@
 ; All sections require the following parameteres, otherwise the bot will fail to start:
 ;
 ; zkill_search_type        (character/corporation/alliance)
-; zkill_search_id          (zKill ID for the search type)
+; zkill_search_id          (zKill ID for the search type - can take multiple values separated by ,)
 ; channel_name             (name of the Slack channel to post kills to)
 ; post_solo_kills          (true/false)
 ; post_expensive_kills     (true/false)
