@@ -26,3 +26,4 @@ Todo
 3. Ability to reload config files.
 4. Add command line options for config files
 5. Clean up prints into logging with levels.
+6. Run config validation at startup

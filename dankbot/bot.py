@@ -5,16 +5,19 @@ import configparser
 from slackclient import SlackClient
 
 config = configparser.SafeConfigParser()
-config.read("config.ini")
-
 searches = configparser.SafeConfigParser()
-searches.read("searches.ini")
-
-SLACK_API_TOKEN = config.get('slack', 'slack_api_token')
-sc = SlackClient(SLACK_API_TOKEN)
+sc = None
 
 
-def main():
+def main(configpath="."):
+
+    global sc
+
+    config.read("%s/config.ini" % configpath)
+    searches.read("%s/searches.ini" % configpath)
+
+    sc = SlackClient(config.get('slack', 'slack_api_token'))
+
     while True:
         if getRedisq():
             time.sleep(0.5)
@@ -125,6 +128,7 @@ def cycleChannels(km):
                     pass
                 else:
                     print("Loss value config param evaluated to True - permitted settings are False or numerical")
+                    pass
             except ValueError:
                 if km['value'] >= searches.getfloat(channel, 'loss_value'):
                     sendKill('loss_expensive', channel, km)
