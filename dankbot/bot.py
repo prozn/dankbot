@@ -115,9 +115,24 @@ def cycleChannels(km):
 
             print("Matching kill found for channel (%s) but it was not solo or expsneive" % channel)
 
+        if searches.getboolean(channel, 'post_losses'):
+            if km['victim']['ship'] in searches.get(channel, 'loss_ship_type_ids'):
+                sendKill('loss_ship', channel, km)
+                continue
+            try:
+                if searches.getboolean(channel, 'loss_value') is False:
+                    pass
+                else:
+                    print("Loss value config param evaluated to True - permitted settings are False or numerical")
+            except ValueError:
+                if km['value'] >= searches.getfloat(channel, 'loss_value'):
+                    sendKill('loss_expensive', channel, km)
+                    continue
+
         if km['victim']['ship'] in config.get('killboard', 'super_type_ids').split(',') and \
                 searches.getboolean(channel, 'post_all_super_kills'):
             sendKill('super', channel, km)
+            continue
 
 
 def sendKill(killtype, searchsection, km):
@@ -168,18 +183,35 @@ def sendKill(killtype, searchsection, km):
                 'short': True
             }
         ]
+    elif killtype in ("loss_ship", "loss_expensive"):
+        fields = [
+            {
+                'title': 'Killer',
+                'value': "%s (%s)" % (km['finalBlow']['name'],
+                                      km['finalBlow']['corpName'] if km['finalBlow']['allianceName'] == "None"
+                                      else km['finalBlow']['allianceName']),
+                'short': True
+            },
+            {
+                'title': 'Using',
+                'value': km['finalBlow']['shipName'],
+                'short': True
+            }
+        ]
 
     attachment_payload = {
         'fallback': 'Alert!!! %s died in a %s worth %s -- %s%s' % (
             km['victim']['name'], km['victim']['shipName'], "{:,.0f}".format(km['value']),
             config.get('killboard', 'kill_url'), km['id']),
         'color': 'danger' if killtype != 'super' else 'warning',
-        'pretext': "*Solo Kill!!!*" if km['solo'] else "*Dank Frag!!!*",
+        'pretext': "*Solo Kill!!!*" if killtype == "solo"
+        else "*No scrubs... no poors...*" if killtype[:4] == "loss" else "*Dank Frag!!!*",
         'title': '%s died in a %s worth %s ISK' % (km['victim']['name'], km['victim']['shipName'],
                                                    "{:,.0f}".format(km['value'])),
         'title_link': '%s%s' % (config.get('killboard', 'kill_url'), km['id']),
         'fields': fields,
-        'thumb_url': '%s%s_256.png' % (config.get('killboard', 'ship_renders'), km['victim']['ship'])
+        'thumb_url': '%s%s_256.png' % (config.get('killboard', 'ship_renders'), km['victim']['ship']),
+        'mrkdwn_in': ['pretext']
     }
 
     if killtype == "super":

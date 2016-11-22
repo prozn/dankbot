@@ -24,5 +24,5 @@ Todo
 1. Clean up project and make ready for setuptools
 2. Better config file storage... ie. not in project directory.
 3. Ability to reload config files.
-4. Option to post all super kills
-5. Option to add losses to feed
+4. Add command line options for config files
+5. Clean up prints into logging with levels.
