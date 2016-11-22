@@ -115,7 +115,8 @@ def cycleChannels(km):
 
             print("Matching kill found for channel (%s) but it was not solo or expsneive" % channel)
 
-        if searches.getboolean(channel, 'post_losses'):
+        if searches.getboolean(channel, 'post_losses') and \
+                km['victim'][searches.get(channel, 'zkill_search_type')] == searches.get(channel, 'zkill_search_id'):
             if km['victim']['ship'] in searches.get(channel, 'loss_ship_type_ids'):
                 sendKill('loss_ship', channel, km)
                 continue
