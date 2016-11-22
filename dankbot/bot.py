@@ -26,14 +26,14 @@ def getRedisq():
     try:
         r = requests.get('https://redisq.zkillboard.com/listen.php')
         response = r.json()
-        if response.get('package') is None:
-            print('No killmail received.')
-        else:
-            cycleChannels(prepareKillmail(response.get('package')))
-        return True
     except Exception:
         print("Error occurred calling zkill redisq")
         return False
+    if response.get('package') is None:
+        print('No killmail received.')
+    else:
+        cycleChannels(prepareKillmail(response.get('package')))
+    return True
 
 
 def prepareKillmail(package):
