@@ -11,19 +11,22 @@ Installation
 This project is not production ready, so these instructions are intentionally sparse.
 
 1. Download the repository.
-2. Make a copy of the two config files removing .example from the name, and input your own params.
-3. The bot is currently not daemon ready and runs in the terminal.  This means that if you would
-   like it to run independent of your shell session you will need to use a tool like Screen.
-4. Within the project directory run ./dankbot_run.py - the script specifies python3 - depending on
-   your system you may need to change this to just python.
+2. pip install -r requirements.txt
+3. Make a copy of the two config files removing .example from the name, and input your own params.
+4. Run ./dankbot_run.py
+
+--------------------
+Command line options
+--------------------
+
+--nodaemon / will run the bot in the terminal
+
+--config PATH / lets you specify a path to the config files
 
 ====
 Todo
 ====
 
-1. Clean up project and make ready for setuptools
-2. Better config file storage... ie. not in project directory.
-3. Ability to reload config files.
-4. Add command line options for config files
-5. Clean up prints into logging with levels.
-6. Run config validation at startup
+1. Clean up prints into logging with levels.
+2. Enable logging to file when in daemon mode.
+3. Run config validation at startup
