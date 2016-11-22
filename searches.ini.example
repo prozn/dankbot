@@ -13,6 +13,10 @@
 ; include_capsules         (true/false)
 ; expensive_kill_limit     (Minimum value for high value kills)
 ; minimum_capsule_value    (Capsules below this value are ignored)
+; post_all_super_kills     (If true then all super kills will be posted, even if search params are not met)
+; post_losses              (true/false - configuration can be used to send shameful losses to slack)
+; loss_ship_type_ids       (IDs - separate with , - ships to monitor for losses.... eg. ratting VNIs)
+; loss_value               (false/numeric - ships above this value will be monitored for losses (ignoring ship type))
 
 [Perkone]
 zkill_search_type=corporation
@@ -23,3 +27,7 @@ post_expensive_kills=true
 include_capsules=true
 expensive_kill_limit=1000000000
 minimum_capsule_value=50000000
+post_all_super_kills=false
+post_losses=false
+loss_ship_type_ids=
+loss_value=false

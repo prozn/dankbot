@@ -7,3 +7,5 @@ slack_api_token=
 kill_url=https://zkillboard.com/kill/
 ship_renders=https://image.eveonline.com/Render/
 capsule_type_ids=670,33328
+; Avatar, Erebus, Ragnarok, Leviathan, Vanquisher, Aeon, Wyvern, Nyx, Hel, Revenant, Vendetta, Vehement
+super_type_ids=11567,671,23773,3764,42126,23919,23917,23913,22852,3514,42125,42124
