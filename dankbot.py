@@ -1,3 +1,9 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import daemon
+import argparse
+import os
 import time
 import requests
 import configparser
@@ -160,26 +166,27 @@ def sendKill(killtype, searchsection, km):
         fields = [
             {
                 'title': 'Killer',
-                'value': km['finalBlow']['name'],
+                'value': km['finalBlow'].get('name'),
                 'short': True
             },
             {
                 'title': 'Using',
-                'value': km['finalBlow']['shipName'],
+                'value': km['finalBlow'].get('shipName'),
                 'short': True
             }
         ]
     elif killtype == "super":
         fields = [
             {
-                'title': 'Losing alliance/corp',
+                'title': 'Losing corp/alliance',
                 'value': "%s/%s" % (km['victim'].get('corpName'), km['victim'].get('allianceName')),
                 'short': True
             },
             {
                 'title': 'Killer',
-                'value': "%s (%s)" % (km['finalBlow']['name'],
-                                      km['finalBlow'].get('allianceName', km['finalBlow'].get('corpName'))),
+                'value': "%s (%s)" % (km['finalBlow'].get('name'),
+                                      km['finalBlow'].get('corpName') if km['finalBlow'].get('allianceName') == "None"
+                                      else km['finalBlow'].get('allianceName')),
                 'short': True
             },
             {
@@ -192,14 +199,14 @@ def sendKill(killtype, searchsection, km):
         fields = [
             {
                 'title': 'Killer',
-                'value': "%s (%s)" % (km['finalBlow']['name'],
-                                      km['finalBlow']['corpName'] if km['finalBlow']['allianceName'] == "None"
-                                      else km['finalBlow']['allianceName']),
+                'value': "%s (%s)" % (km['finalBlow'].get('name'),
+                                      km['finalBlow'].get('corpName') if km['finalBlow'].get('allianceName') == "None"
+                                      else km['finalBlow'].get('allianceName')),
                 'short': True
             },
             {
                 'title': 'Using',
-                'value': km['finalBlow']['shipName'],
+                'value': km['finalBlow'].get('shipName'),
                 'short': True
             }
         ]
@@ -234,4 +241,25 @@ def sendKill(killtype, searchsection, km):
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--nodaemon", help="Do not run in daemon mode.", action="store_true")
+    parser.add_argument("--config", help="Specify path to folder containing config files.")
+
+    args = parser.parse_args()
+
+    if args.nodaemon:
+        print("Running bot in the terminal.")
+        if args.config:
+            print("Configuration path specified: %s" % os.path.abspath(args.config))
+            main(os.path.abspath(args.config))
+        else:
+            main()
+    else:
+        print("Running bot in daemon mode.")
+        with daemon.DaemonContext():
+            if args.config:
+                print("Configuration path specified: %s" % os.path.abspath(args.config))
+                main(os.path.abspath(args.config))
+            else:
+                main()
