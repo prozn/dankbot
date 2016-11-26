@@ -7,8 +7,13 @@ import os
 import time
 import requests
 import configparser
+import logging
+import logging.handlers
 
 from slackclient import SlackClient
+
+logging.getLogger('requests').setLevel(logging.WARNING)
+logging.getLogger('urllib3').setLevel(logging.WARNING)
 
 config = configparser.SafeConfigParser()
 searches = configparser.SafeConfigParser()
@@ -36,10 +41,10 @@ def getRedisq():
         r = requests.get('https://redisq.zkillboard.com/listen.php')
         response = r.json()
     except Exception:
-        print("Error occurred calling zkill redisq")
+        logger.warning("Error occurred calling zkill redisq")
         return False
     if response.get('package') is None:
-        print('No killmail received.')
+        logger.debug('No killmail received.')
     else:
         cycleChannels(prepareKillmail(response.get('package')))
     return True
@@ -96,19 +101,20 @@ def prepareKillmail(package):
 def cycleChannels(km):
     sentchannels = []
     for channel in searches.sections():
-        print("Searching channel %s" % channel)
+        logger.debug("Searching channel %s" % channel)
         if searches.get(channel, 'channel_name') in sentchannels:
-            print("Killmail has already been sent to channel %s, skipping." % searches.get(channel, 'channel_name'))
+            logger.debug("Killmail has already been sent to channel %s, skipping."
+                         % searches.get(channel, 'channel_name'))
             continue
 
         if searches.getboolean(channel, 'include_capsules') is False and \
                 km['victim']['ship'] in config.get('killboard', 'capsule_type_ids').split(','):
-            print("Kill is a pod and pods are ignored by config.")
+            logger.debug("Kill is a pod and pods are ignored by config.")
             continue
 
         if km['victim']['ship'] in config.get('killboard', 'capsule_type_ids').split(',') and \
                 km['value'] < searches.getfloat(channel, 'minimum_capsule_value'):
-            print("Kill is a pod and value is below minimum capsule value in config.")
+            logger.debug("Kill is a pod and value is below minimum capsule value in config.")
             continue
 
         if any(a[searches.get(channel, 'zkill_search_type')]
@@ -122,7 +128,7 @@ def cycleChannels(km):
                 sendKill('expensive', channel, km)
                 continue
 
-            print("Matching kill found for channel (%s) but it was not solo or expsneive" % channel)
+            logger.debug("Matching kill found for channel (%s) but it was not solo or expsneive" % channel)
 
         if searches.getboolean(channel, 'post_losses') and \
                 km['victim'][searches.get(channel, 'zkill_search_type')] == searches.get(channel, 'zkill_search_id'):
@@ -133,7 +139,8 @@ def cycleChannels(km):
                 if searches.getboolean(channel, 'loss_value') is False:
                     pass
                 else:
-                    print("Loss value config param evaluated to True - permitted settings are False or numerical")
+                    logger.warning("Loss value config param evaluated to True"
+                                   " - permitted settings are False or numerical")
                     pass
             except ValueError:
                 if km['value'] >= searches.getfloat(channel, 'loss_value'):
@@ -237,29 +244,74 @@ def sendKill(killtype, searchsection, km):
         icon_emoji=config.get('slack', 'slack_bot_icon'),
         attachments=[attachment_payload]
     )
-    print("Kill sent to slack...")
+    logger.info("Kill sent to slack...")
+
+
+def checkConfigFiles(path):
+    # implement config file checks
+    return True
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--nodaemon", help="Do not run in daemon mode.", action="store_true")
-    parser.add_argument("--config", help="Specify path to folder containing config files.")
+    parser.add_argument("--nodaemon", help="Do not run in daemon mode", action="store_true")
+    parser.add_argument("--config", help="Specify path to folder containing config files")
+    parser.add_argument("--forcelogfile", help="Force the bot to write to logfiles when not running in daemon mode",
+                        action="store_true")
+    parser.add_argument("--debug", help="Log/show debugging messages", action="store_true")
+    parser.add_argument("--nologging", help="Do not log anything", action="store_true")
+    parser.add_argument("--logfile", help="Specify custom log file path")
 
     args = parser.parse_args()
 
-    if args.nodaemon:
-        print("Running bot in the terminal.")
-        if args.config:
-            print("Configuration path specified: %s" % os.path.abspath(args.config))
-            main(os.path.abspath(args.config))
-        else:
-            main()
+    logger = logging.getLogger()
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    logger.setLevel(logging.DEBUG)
+
+    if args.logfile:
+        logfilename = os.path.abspath(args.logfile)
     else:
-        print("Running bot in daemon mode.")
-        with daemon.DaemonContext():
-            if args.config:
-                print("Configuration path specified: %s" % os.path.abspath(args.config))
-                main(os.path.abspath(args.config))
-            else:
-                main()
+        logdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "logs")
+        if not os.path.exists(logdir):
+            os.mkdir(logdir)
+        logfilename = os.path.join(logdir, "dankbot.log")
+    logfile = logging.handlers.RotatingFileHandler(logfilename, maxBytes=10000000, backupCount=5)
+    logfile.setFormatter(formatter)
+
+    console = logging.StreamHandler()
+    console.setFormatter(formatter)
+
+    if args.debug:
+        logfile.setLevel(logging.DEBUG)
+        console.setLevel(logging.DEBUG)
+    else:
+        logfile.setLevel(logging.INFO)
+        console.setLevel(logging.INFO)
+
+    if args.nodaemon and not args.nologging:
+        logger.addHandler(console)
+
+    if not args.nologging:
+        if not args.nodaemon or args.forcelogfile:
+            logger.debug("Logging to %s" % logfilename)
+            logger.addHandler(logfile)
+
+    if args.config:
+        configpath = os.path.abspath(args.config)
+        logger.info("Configuration path specified: %s" % configpath)
+    else:
+        configpath = os.path.abspath(".")
+        logger.info("Using default config path: %s" % configpath)
+
+    if checkConfigFiles(configpath):
+        if args.nodaemon:
+            logger.info("Running bot in the terminal...")
+            main(configpath)
+        else:
+            logger.info("Running bot in daemon mode...")
+            with daemon.DaemonContext():
+                main(configpath)
+    else:
+        logger.critical("Config files did not pass validation checks, exiting...")
+        exit()

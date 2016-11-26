@@ -27,6 +27,5 @@ Command line options
 Todo
 ====
 
-1. Clean up prints into logging with levels.
-2. Enable logging to file when in daemon mode.
-3. Run config validation at startup
+1. Run config validation at startup
+2. Enable twitter posting

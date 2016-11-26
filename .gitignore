@@ -14,3 +14,4 @@ __pycache__/
 
 # Crap
 .DS_Store
+logs/
