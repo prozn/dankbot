@@ -54,19 +54,15 @@ def prepareKillmail(package):
     attackerList = []
     for attacker in package.get('killmail', {}).get('attackers', {}):
         att = {
-            'character': attacker.get('character', {}).get('id_str'),
-            'name': attacker.get('character', {}).get('name'),
-            'corporation': attacker.get('corporation', {}).get('id_str'),
-            'corpName': attacker.get('corporation', {}).get('name'),
-            'alliance': attacker.get('alliance', {}).get('id_str'),
-            'allianceName': attacker.get('alliance', {}).get('name'),
-            'ship': attacker.get('shipType', {}).get('id_str'),
-            'shipName': attacker.get('shipType', {}).get('name')
+            'character': attacker.get('character_id', 0),
+            'corporation': attacker.get('corporation_id', 0),
+            'alliance': attacker.get('alliance_id', 0),
+            'ship': attacker.get('ship_type_id', 0),
         }
-        if att['corporation'] not in (None, "0"):
+        if att['corporation'] not in (None, "0", 0):
             attackerList.append(att)
 
-        if attacker.get('finalBlow') is True:
+        if attacker.get('final_blow') is True:
             finalBlow = att
 
         del att
@@ -78,18 +74,13 @@ def prepareKillmail(package):
         'id': package.get('killID'),
         'solo': True if len(attackerList) == 1 else False,
         'victim': {
-            'character': package.get('killmail', {}).get('victim', {}).get('character', {}).get('id_str'),
-            'name': package.get('killmail', {}).get('victim', {}).get('character', {}).get('name'),
-            'corporation': package.get('killmail', {}).get('victim', {}).get('corporation', {}).get('id_str'),
-            'corpName': package.get('killmail', {}).get('victim', {}).get('corporation', {}).get('name'),
-            'alliance': package.get('killmail', {}).get('victim', {}).get('alliance', {}).get('id_str'),
-            'allianceName': package.get('killmail', {}).get('victim', {}).get('alliance', {}).get('name', 'None'),
-            'ship': package.get('killmail', {}).get('victim', {}).get('shipType', {}).get('id_str'),
-            'shipName': package.get('killmail', {}).get('victim', {}).get('shipType', {}).get('name')
+            'character': package.get('killmail', {}).get('victim', {}).get('character_id', 0),
+            'corporation': package.get('killmail', {}).get('victim', {}).get('corporation_id', 0),
+            'alliance': package.get('killmail', {}).get('victim', {}).get('alliance_id', 0),
+            'ship': package.get('killmail', {}).get('victim', {}).get('ship_type_id', 0),
         },
         'location': {
-            'id': package.get('killmail', {}).get('solarSystem', {}).get('id_str'),
-            'name': package.get('killmail', {}).get('solarSystem', {}).get('name')
+            'id': package.get('killmail', {}).get('solar_system_id', 0),
         },
         'value': package.get('zkb', {}).get('totalValue'),
         'attackers': attackerList,
