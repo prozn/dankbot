@@ -9,6 +9,8 @@ import requests
 import configparser
 import logging
 import logging.handlers
+from esipy import App
+from esipy import EsiClient
 
 from slackclient import SlackClient
 
@@ -28,6 +30,12 @@ def main(configpath="."):
     searches.read("%s/searches.ini" % configpath)
 
     sc = SlackClient(config.get('slack', 'slack_api_token'))
+    swagger = App.create(url="https://esi.tech.ccp.is/latest/swagger.json?datasource=tranquility")
+
+    esi = EsiClient(
+        retry_requests=True,  # set to retry on http 5xx error (default False)
+        header={'User-Agent': 'Killmail Slack Bot by Prozn https://github.com/prozn/dankbot/'}
+    )
 
     while True:
         if getRedisq():
@@ -144,7 +152,16 @@ def cycleChannels(km):
             continue
 
 
+def fluffKillmail(km):
+    # Call ESI API and add:
+    # For victim, attackers, finalBlow: name, shipName
+    # For victim, finalBlow: corpName, allianceName
+    # For location: name
+    return km
+
+
 def sendKill(killtype, searchsection, km):
+    km = fluffKillmail(km)
     if killtype == "expensive":
         fields = [
             {
