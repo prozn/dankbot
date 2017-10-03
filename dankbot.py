@@ -127,7 +127,7 @@ def cycleChannels(km):
                 sendKill('expensive', channel, km)
                 continue
 
-            logger.debug("Matching kill found for channel (%s) but it was not solo or expsneive" % channel)
+            logger.debug("Matching kill found for channel (%s) but it was not solo or expensive" % channel)
 
         if searches.getboolean(channel, 'post_losses') and \
                 km['victim'][searches.get(channel, 'zkill_search_type')] == searches.get(channel, 'zkill_search_id'):
