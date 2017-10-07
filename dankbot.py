@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import daemon
 import argparse
 import os
 import time
@@ -9,8 +8,13 @@ import requests
 import configparser
 import logging
 import logging.handlers
+import sqlite3
+from esipy import App
+from esipy import EsiClient
 
 from slackclient import SlackClient
+
+itemdb = sqlite3.connect('itemdb.sqlite3')
 
 logging.getLogger('requests').setLevel(logging.WARNING)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
@@ -22,12 +26,18 @@ sc = None
 
 def main(configpath="."):
 
-    global sc
+    global sc,swagger,esi
 
     config.read("%s/config.ini" % configpath)
     searches.read("%s/searches.ini" % configpath)
 
     sc = SlackClient(config.get('slack', 'slack_api_token'))
+    swagger = App.create(url="https://esi.tech.ccp.is/latest/swagger.json?datasource=tranquility")
+
+    esi = EsiClient(
+        retry_requests=True,  # set to retry on http 5xx error (default False)
+        header={'User-Agent': 'Killmail Slack Bot by Prozn https://github.com/prozn/dankbot/'}
+    )
 
     while True:
         if getRedisq():
@@ -54,19 +64,15 @@ def prepareKillmail(package):
     attackerList = []
     for attacker in package.get('killmail', {}).get('attackers', {}):
         att = {
-            'character': attacker.get('character', {}).get('id_str'),
-            'name': attacker.get('character', {}).get('name'),
-            'corporation': attacker.get('corporation', {}).get('id_str'),
-            'corpName': attacker.get('corporation', {}).get('name'),
-            'alliance': attacker.get('alliance', {}).get('id_str'),
-            'allianceName': attacker.get('alliance', {}).get('name'),
-            'ship': attacker.get('shipType', {}).get('id_str'),
-            'shipName': attacker.get('shipType', {}).get('name')
+            'character': attacker.get('character_id', 0),
+            'corporation': attacker.get('corporation_id', 0),
+            'alliance': attacker.get('alliance_id', 0),
+            'ship': attacker.get('ship_type_id', 0),
         }
-        if att['corporation'] not in (None, "0"):
+        if att['corporation'] not in (None, "0", 0):
             attackerList.append(att)
 
-        if attacker.get('finalBlow') is True:
+        if attacker.get('final_blow') is True:
             finalBlow = att
 
         del att
@@ -78,18 +84,13 @@ def prepareKillmail(package):
         'id': package.get('killID'),
         'solo': True if len(attackerList) == 1 else False,
         'victim': {
-            'character': package.get('killmail', {}).get('victim', {}).get('character', {}).get('id_str'),
-            'name': package.get('killmail', {}).get('victim', {}).get('character', {}).get('name'),
-            'corporation': package.get('killmail', {}).get('victim', {}).get('corporation', {}).get('id_str'),
-            'corpName': package.get('killmail', {}).get('victim', {}).get('corporation', {}).get('name'),
-            'alliance': package.get('killmail', {}).get('victim', {}).get('alliance', {}).get('id_str'),
-            'allianceName': package.get('killmail', {}).get('victim', {}).get('alliance', {}).get('name', 'None'),
-            'ship': package.get('killmail', {}).get('victim', {}).get('shipType', {}).get('id_str'),
-            'shipName': package.get('killmail', {}).get('victim', {}).get('shipType', {}).get('name')
+            'character': package.get('killmail', {}).get('victim', {}).get('character_id', 0),
+            'corporation': package.get('killmail', {}).get('victim', {}).get('corporation_id', 0),
+            'alliance': package.get('killmail', {}).get('victim', {}).get('alliance_id', 0),
+            'ship': package.get('killmail', {}).get('victim', {}).get('ship_type_id', 0),
         },
         'location': {
-            'id': package.get('killmail', {}).get('solarSystem', {}).get('id_str'),
-            'name': package.get('killmail', {}).get('solarSystem', {}).get('name')
+            'id': package.get('killmail', {}).get('solar_system_id', 0),
         },
         'value': package.get('zkb', {}).get('totalValue'),
         'attackers': attackerList,
@@ -100,6 +101,11 @@ def prepareKillmail(package):
 
 def cycleChannels(km):
     sentchannels = []
+    #Uncomment to send all kills to the first chan in the config file if the debug command line is set
+    #if args.debug:
+    #   sendKill('expensive',searches.sections()[0], km)
+    #   time.sleep(1)
+    #   return
     for channel in searches.sections():
         logger.debug("Searching channel %s" % channel)
         if searches.get(channel, 'channel_name') in sentchannels:
@@ -153,7 +159,85 @@ def cycleChannels(km):
             continue
 
 
+def fluffKillmail(km):
+    # Call ESI API and add:
+    # For victim, attackers, finalBlow: name, shipName
+    # For victim, finalBlow: corpName, allianceName
+    # For location: name
+    # Build lists of characters, corporations, alliances, ships and solar systems to get details for
+    characters,corporations,alliances,ships = (set([]),set([]),set([]),set([]))
+
+    characters.add(km['victim']['character'])
+    corporations.add(km['victim']['corporation'])
+    alliances.add(km['victim']['alliance'])
+    km['victim']['shipName'] = getItemName(km['victim']['ship'])
+
+    for character in km['attackers']:
+        characters.add(character['character'])
+        corporations.add(character['corporation'])
+        alliances.add(character['alliance'])
+
+    # Lists built, get the data from ESI
+    get_character_details = swagger.op['get_characters_names'](
+        character_ids=','.join(str(x) for x in characters if x != 0)
+    )
+    get_corporation_details = swagger.op['get_corporations_names'](
+        corporation_ids=','.join(str(x) for x in corporations if x != 0)
+    )
+    get_alliance_details = swagger.op['get_alliances_names'](
+        alliance_ids=','.join(str(x) for x in alliances if x != 0)
+    )
+    get_system_details = swagger.op['get_universe_systems_system_id'](
+        system_id=km['location']['id']
+    )
+
+    char_array = {'0': 'Unknown'}
+    char_name_list = esi.request(get_character_details)
+    for character in char_name_list.data:
+        char_array[character.character_id] = character.character_name
+
+    corp_array = {'0': 'Unknown'}
+    corp_name_list = esi.request(get_corporation_details)
+    for corp in corp_name_list.data:
+        corp_array[corp.corporation_id] = corp.corporation_name
+
+    alliance_array = {'0': 'Unknown'}
+    alliance_name_list = esi.request(get_alliance_details)
+    for alliance in alliance_name_list.data:
+        alliance_array[alliance.alliance_id] = alliance.alliance_name
+
+    system_details = esi.request(get_system_details)
+
+    km['location']['name'] = system_details.data.name
+
+    km['victim']['name'] = char_array[km['victim']['character']]
+    km['victim']['corpName'] = corp_array[km['victim']['corporation']]
+    km['victim']['allianceName'] = alliance_array[km['victim']['alliance']]
+
+    km['finalBlow']['name'] = char_array[km['finalBlow']['character']]
+    km['finalBlow']['corpName'] = corp_array[km['finalBlow']['corporation']]
+    km['finalBlow']['allianceName'] = alliance_array[km['finalBlow']['alliance']]
+    km['finalBlow']['shipName'] = getItemName(km['finalBlow']['ship'])
+
+    for i in range(0,len(km['attackers'])):
+        km['attackers'][i]['name'] = char_array[km['attackers'][i]['character']]
+        #km['attackers'][i]['corpName'] = corp_array[km['attackers'][i]['corporation']]
+        #km['attackers'][i]['allianceName'] = alliance_array[km['attackers'][i]['alliance']]
+        km['attackers'][i]['shipName'] = getItemName(km['attackers'][i]['ship'])
+
+    return km
+
+def getItemName(id):
+    idb = itemdb.cursor()
+    itemid = (str(id),)
+    idb.execute('SELECT typeName FROM invTypes WHERE typeID=?', itemid)
+    itemname = idb.fetchone()
+    itemname = "Unknown (%s)" % id if itemname is None else itemname[0]
+    idb.close()
+    return itemname
+
 def sendKill(killtype, searchsection, km):
+    km = fluffKillmail(km)
     if killtype == "expensive":
         fields = [
             {
@@ -225,8 +309,8 @@ def sendKill(killtype, searchsection, km):
         'color': 'danger' if killtype != 'super' else 'warning',
         'pretext': "*Solo Kill!!!*" if killtype == "solo"
         else "*No scrubs... no poors...*" if killtype[:4] == "loss" else "*Dank Frag!!!*",
-        'title': '%s died in a %s worth %s ISK' % (km['victim']['name'], km['victim']['shipName'],
-                                                   "{:,.0f}".format(km['value'])),
+        'title': '%s died in a %s worth %s ISK in %s' % (km['victim']['name'], km['victim']['shipName'],
+                                                   "{:,.0f}".format(km['value']), km['location']['name']),
         'title_link': '%s%s' % (config.get('killboard', 'kill_url'), km['id']),
         'fields': fields,
         'thumb_url': '%s%s_256.png' % (config.get('killboard', 'ship_renders'), km['victim']['ship']),
@@ -310,6 +394,7 @@ if __name__ == '__main__':
             main(configpath)
         else:
             logger.info("Running bot in daemon mode...")
+            import daemon
             with daemon.DaemonContext():
                 main(configpath)
     else:
