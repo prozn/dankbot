@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import daemon
 import argparse
 import os
 import time
@@ -318,6 +317,7 @@ if __name__ == '__main__':
             main(configpath)
         else:
             logger.info("Running bot in daemon mode...")
+            import daemon
             with daemon.DaemonContext():
                 main(configpath)
     else:
