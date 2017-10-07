@@ -8,10 +8,13 @@ import requests
 import configparser
 import logging
 import logging.handlers
+import sqlite3
 from esipy import App
 from esipy import EsiClient
 
 from slackclient import SlackClient
+
+itemdb = sqlite3.connect('itemdb.sqlite3')
 
 logging.getLogger('requests').setLevel(logging.WARNING)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
@@ -23,7 +26,7 @@ sc = None
 
 def main(configpath="."):
 
-    global sc
+    global sc,swagger,esi
 
     config.read("%s/config.ini" % configpath)
     searches.read("%s/searches.ini" % configpath)
@@ -98,6 +101,11 @@ def prepareKillmail(package):
 
 def cycleChannels(km):
     sentchannels = []
+    #Uncomment to send all kills to the first chan in the config file if the debug command line is set
+    #if args.debug:
+    #   sendKill('expensive',searches.sections()[0], km)
+    #    time.sleep(1)
+    #    return
     for channel in searches.sections():
         logger.debug("Searching channel %s" % channel)
         if searches.get(channel, 'channel_name') in sentchannels:
@@ -156,8 +164,71 @@ def fluffKillmail(km):
     # For victim, attackers, finalBlow: name, shipName
     # For victim, finalBlow: corpName, allianceName
     # For location: name
+    # Build lists of characters, corporations, alliances, ships and solar systems to get details for
+    characters,corporations,alliances,ships,systems = (set([]),set([]),set([]),set([]),set([]))
+
+    systems.add(km['location']['id'])
+    characters.add(km['victim']['character'])
+    corporations.add(km['victim']['corporation'])
+    alliances.add(km['victim']['alliance'])
+    km['victim']['shipName'] = getItemName(km['victim']['ship'])
+
+    for character in km['attackers']:
+        characters.add(character['character'])
+        corporations.add(character['corporation'])
+        alliances.add(character['alliance'])
+
+    # Lists built, get the data from ESI
+    get_character_details = swagger.op['get_characters_names'](
+        character_ids=','.join(str(x) for x in characters)
+    )
+    get_corporation_details = swagger.op['get_corporations_names'](
+        corporation_ids=','.join(str(x) for x in corporations)
+    )
+    get_alliance_details = swagger.op['get_alliances_names'](
+        alliance_ids=','.join(str(x) for x in alliances)
+    )
+
+    char_array = {}
+    char_name_list = esi.request(get_character_details)
+    for character in char_name_list.data:
+        char_array[character.character_id] = character.character_name
+
+    corp_array = {}
+    corp_name_list = esi.request(get_corporation_details)
+    for corp in corp_name_list.data:
+        corp_array[corp.corporation_id] = corp.corporation_name
+
+    alliance_array = {}
+    alliance_name_list = esi.request(get_alliance_details)
+    for alliance in alliance_name_list.data:
+        alliance_array[alliance.alliance_id] = alliance.alliance_name
+
+    km['victim']['name'] = char_array[km['victim']['character']]
+    km['victim']['corpName'] = corp_array[km['victim']['corporation']]
+    km['victim']['allianceName'] = alliance_array[km['victim']['alliance']]
+
+    km['finalBlow']['name'] = char_array[km['finalBlow']['character']]
+    km['finalBlow']['corpName'] = corp_array[km['finalBlow']['corporation']]
+    km['finalBlow']['allianceName'] = alliance_array[km['finalBlow']['alliance']]
+    km['finalBlow']['shipName'] = getItemName(km['finalBlow']['ship'])
+
+    for i in range(0,len(km['attackers'])):
+        km['attackers'][i]['name'] = char_array[km['attackers'][i]['character']]
+        km['attackers'][i]['corpName'] = corp_array[km['attackers'][i]['corporation']]
+        km['attackers'][i]['allianceName'] = alliance_array[km['attackers'][i]['alliance']]
+        km['attackers'][i]['shipName'] = getItemName(km['attackers'][i]['ship'])
+
     return km
 
+def getItemName(id):
+    idb = itemdb.cursor()
+    itemid = (str(id),)
+    idb.execute('SELECT typeName FROM invTypes WHERE typeID=?', itemid)
+    itemname = idb.fetchone()
+    itemname = "Unknown (%s)" % id if itemname is None else itemname[0]
+    idb.close()
+    return itemname
 
 def sendKill(killtype, searchsection, km):
     km = fluffKillmail(km)
