@@ -104,8 +104,8 @@ def cycleChannels(km):
     #Uncomment to send all kills to the first chan in the config file if the debug command line is set
     #if args.debug:
     #   sendKill('expensive',searches.sections()[0], km)
-    #    time.sleep(1)
-    #    return
+    #   time.sleep(1)
+    #   return
     for channel in searches.sections():
         logger.debug("Searching channel %s" % channel)
         if searches.get(channel, 'channel_name') in sentchannels:
@@ -165,9 +165,8 @@ def fluffKillmail(km):
     # For victim, finalBlow: corpName, allianceName
     # For location: name
     # Build lists of characters, corporations, alliances, ships and solar systems to get details for
-    characters,corporations,alliances,ships,systems = (set([]),set([]),set([]),set([]),set([]))
+    characters,corporations,alliances,ships = (set([]),set([]),set([]),set([]))
 
-    systems.add(km['location']['id'])
     characters.add(km['victim']['character'])
     corporations.add(km['victim']['corporation'])
     alliances.add(km['victim']['alliance'])
@@ -180,29 +179,36 @@ def fluffKillmail(km):
 
     # Lists built, get the data from ESI
     get_character_details = swagger.op['get_characters_names'](
-        character_ids=','.join(str(x) for x in characters)
+        character_ids=','.join(str(x) for x in characters if x != 0)
     )
     get_corporation_details = swagger.op['get_corporations_names'](
-        corporation_ids=','.join(str(x) for x in corporations)
+        corporation_ids=','.join(str(x) for x in corporations if x != 0)
     )
     get_alliance_details = swagger.op['get_alliances_names'](
-        alliance_ids=','.join(str(x) for x in alliances)
+        alliance_ids=','.join(str(x) for x in alliances if x != 0)
+    )
+    get_system_details = swagger.op['get_universe_systems_system_id'](
+        system_id=km['location']['id']
     )
 
-    char_array = {}
+    char_array = {'0': 'Unknown'}
     char_name_list = esi.request(get_character_details)
     for character in char_name_list.data:
         char_array[character.character_id] = character.character_name
 
-    corp_array = {}
+    corp_array = {'0': 'Unknown'}
     corp_name_list = esi.request(get_corporation_details)
     for corp in corp_name_list.data:
         corp_array[corp.corporation_id] = corp.corporation_name
 
-    alliance_array = {}
+    alliance_array = {'0': 'Unknown'}
     alliance_name_list = esi.request(get_alliance_details)
     for alliance in alliance_name_list.data:
         alliance_array[alliance.alliance_id] = alliance.alliance_name
+
+    system_details = esi.request(get_system_details)
+
+    km['location']['name'] = system_details.data.name
 
     km['victim']['name'] = char_array[km['victim']['character']]
     km['victim']['corpName'] = corp_array[km['victim']['corporation']]
@@ -215,8 +221,8 @@ def fluffKillmail(km):
 
     for i in range(0,len(km['attackers'])):
         km['attackers'][i]['name'] = char_array[km['attackers'][i]['character']]
-        km['attackers'][i]['corpName'] = corp_array[km['attackers'][i]['corporation']]
-        km['attackers'][i]['allianceName'] = alliance_array[km['attackers'][i]['alliance']]
+        #km['attackers'][i]['corpName'] = corp_array[km['attackers'][i]['corporation']]
+        #km['attackers'][i]['allianceName'] = alliance_array[km['attackers'][i]['alliance']]
         km['attackers'][i]['shipName'] = getItemName(km['attackers'][i]['ship'])
 
     return km
@@ -303,8 +309,8 @@ def sendKill(killtype, searchsection, km):
         'color': 'danger' if killtype != 'super' else 'warning',
         'pretext': "*Solo Kill!!!*" if killtype == "solo"
         else "*No scrubs... no poors...*" if killtype[:4] == "loss" else "*Dank Frag!!!*",
-        'title': '%s died in a %s worth %s ISK' % (km['victim']['name'], km['victim']['shipName'],
-                                                   "{:,.0f}".format(km['value'])),
+        'title': '%s died in a %s worth %s ISK in %s' % (km['victim']['name'], km['victim']['shipName'],
+                                                   "{:,.0f}".format(km['value']), km['location']['name']),
         'title_link': '%s%s' % (config.get('killboard', 'kill_url'), km['id']),
         'fields': fields,
         'thumb_url': '%s%s_256.png' % (config.get('killboard', 'ship_renders'), km['victim']['ship']),
