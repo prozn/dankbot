@@ -138,7 +138,7 @@ def cycleChannels(km):
 
         if searches.getboolean(channel, 'post_losses') and \
                 km['victim'][searches.get(channel, 'zkill_search_type')] == searches.getint(channel, 'zkill_search_id'):
-            if km['victim']['ship'] in map(int, searches.get(channel, 'loss_ship_type_ids').split(',')):
+            if len(searches.get(channel, 'loss_ship_type_ids')) > 0 and km['victim']['ship'] in map(int, searches.get(channel, 'loss_ship_type_ids').split(',')):
                 sendKill('loss_ship', channel, km)
                 continue
             try:
