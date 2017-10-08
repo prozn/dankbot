@@ -212,18 +212,18 @@ def fluffKillmail(km):
 
     km['victim']['name'] = char_array[km['victim']['character']]
     km['victim']['corpName'] = corp_array[km['victim']['corporation']]
-    km['victim']['allianceName'] = alliance_array[km['victim']['alliance']]
+    km['victim']['allianceName'] = alliance_array[km['victim']['alliance']] if km['victim']['alliance'] != 0  else "Unknown"
 
-    km['finalBlow']['name'] = char_array[km['finalBlow']['character']]
-    km['finalBlow']['corpName'] = corp_array[km['finalBlow']['corporation']]
-    km['finalBlow']['allianceName'] = alliance_array[km['finalBlow']['alliance']]
-    km['finalBlow']['shipName'] = getItemName(km['finalBlow']['ship'])
+    km['finalBlow']['name'] = char_array[km['finalBlow']['character']] if km['finalBlow']['character'] != 0 else "Unknown"
+    km['finalBlow']['corpName'] = corp_array[km['finalBlow']['corporation']] if km['finalBlow']['corporation'] != 0 else "Unknown"
+    km['finalBlow']['allianceName'] = alliance_array[km['finalBlow']['alliance']] if km['finalBlow']['alliance'] != 0 else "Unknown"
+    km['finalBlow']['shipName'] = getItemName(km['finalBlow']['ship']) if km['finalBlow']['ship'] != 0 else "Unknown"
 
     for i in range(0,len(km['attackers'])):
-        km['attackers'][i]['name'] = char_array[km['attackers'][i]['character']]
+        km['attackers'][i]['name'] = char_array[km['attackers'][i]['character']] if km['attackers'][i]['character'] != 0  else "Unknown"
         #km['attackers'][i]['corpName'] = corp_array[km['attackers'][i]['corporation']]
         #km['attackers'][i]['allianceName'] = alliance_array[km['attackers'][i]['alliance']]
-        km['attackers'][i]['shipName'] = getItemName(km['attackers'][i]['ship'])
+        km['attackers'][i]['shipName'] = getItemName(km['attackers'][i]['ship']) if km['attackers'][i]['ship'] != 0 else "Unknown"
 
     return km
 
@@ -244,7 +244,7 @@ def sendKill(killtype, searchsection, km):
                 'title': 'Involved Players',
                 'value': '\n'.join(["{name} ({shipName})".format(**a) for a in km['attackers']
                                    if a[searches.get(searchsection, 'zkill_search_type')]
-                                   == searches.get(searchsection, 'zkill_search_id')]),
+                                   == int(searches.get(searchsection, 'zkill_search_id'))]),
                 'short': True
             },
             {
@@ -276,7 +276,7 @@ def sendKill(killtype, searchsection, km):
             {
                 'title': 'Killer',
                 'value': "%s (%s)" % (km['finalBlow'].get('name'),
-                                      km['finalBlow'].get('corpName') if km['finalBlow'].get('allianceName') == "None"
+                                      km['finalBlow'].get('corpName') if km['finalBlow'].get('allianceName') == "Unknown"
                                       else km['finalBlow'].get('allianceName')),
                 'short': True
             },
@@ -291,7 +291,7 @@ def sendKill(killtype, searchsection, km):
             {
                 'title': 'Killer',
                 'value': "%s (%s)" % (km['finalBlow'].get('name'),
-                                      km['finalBlow'].get('corpName') if km['finalBlow'].get('allianceName') == "None"
+                                      km['finalBlow'].get('corpName') if km['finalBlow'].get('allianceName') == "Unknown"
                                       else km['finalBlow'].get('allianceName')),
                 'short': True
             },
