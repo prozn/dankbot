@@ -114,17 +114,17 @@ def cycleChannels(km):
             continue
 
         if searches.getboolean(channel, 'include_capsules') is False and \
-                km['victim']['ship'] in config.get('killboard', 'capsule_type_ids').split(','):
+                km['victim']['ship'] in map(int, config.get('killboard', 'capsule_type_ids').split(',')):
             logger.debug("Kill is a pod and pods are ignored by config.")
             continue
 
-        if km['victim']['ship'] in config.get('killboard', 'capsule_type_ids').split(',') and \
+        if km['victim']['ship'] in map(int, config.get('killboard', 'capsule_type_ids').split(',')) and \
                 km['value'] < searches.getfloat(channel, 'minimum_capsule_value'):
             logger.debug("Kill is a pod and value is below minimum capsule value in config.")
             continue
 
         if any(a[searches.get(channel, 'zkill_search_type')]
-                in searches.get(channel, 'zkill_search_id').split(',') for a in km['attackers']):
+                in map(int, searches.get(channel, 'zkill_search_id').split(',')) for a in km['attackers']):
             if km['solo'] is True:
                 sendKill('solo', channel, km)
                 sentchannels.append(searches.get(channel, 'channel_name'))
@@ -137,8 +137,8 @@ def cycleChannels(km):
             logger.debug("Matching kill found for channel (%s) but it was not solo or expensive" % channel)
 
         if searches.getboolean(channel, 'post_losses') and \
-                km['victim'][searches.get(channel, 'zkill_search_type')] == searches.get(channel, 'zkill_search_id'):
-            if km['victim']['ship'] in searches.get(channel, 'loss_ship_type_ids'):
+                km['victim'][searches.get(channel, 'zkill_search_type')] == searches.getint(channel, 'zkill_search_id'):
+            if len(searches.get(channel, 'loss_ship_type_ids')) > 0 and km['victim']['ship'] in map(int, searches.get(channel, 'loss_ship_type_ids').split(',')):
                 sendKill('loss_ship', channel, km)
                 continue
             try:
@@ -153,7 +153,7 @@ def cycleChannels(km):
                     sendKill('loss_expensive', channel, km)
                     continue
 
-        if km['victim']['ship'] in config.get('killboard', 'super_type_ids').split(',') and \
+        if km['victim']['ship'] in map(int, config.get('killboard', 'super_type_ids').split(',')) and \
                 searches.getboolean(channel, 'post_all_super_kills'):
             sendKill('super', channel, km)
             continue
