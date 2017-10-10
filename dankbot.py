@@ -191,17 +191,17 @@ def fluffKillmail(km):
         system_id=km['location']['id']
     )
 
-    char_array = {'0': 'Unknown'}
+    char_array = {0: 'Unknown'}
     char_name_list = esi.request(get_character_details)
     for character in char_name_list.data:
         char_array[character.character_id] = character.character_name
 
-    corp_array = {'0': 'Unknown'}
+    corp_array = {0: 'Unknown'}
     corp_name_list = esi.request(get_corporation_details)
     for corp in corp_name_list.data:
         corp_array[corp.corporation_id] = corp.corporation_name
 
-    alliance_array = {'0': 'Unknown'}
+    alliance_array = {0: 'Unknown'}
     alliance_name_list = esi.request(get_alliance_details)
     for alliance in alliance_name_list.data:
         alliance_array[alliance.alliance_id] = alliance.alliance_name
@@ -212,15 +212,15 @@ def fluffKillmail(km):
 
     km['victim']['name'] = char_array[km['victim']['character']]
     km['victim']['corpName'] = corp_array[km['victim']['corporation']]
-    km['victim']['allianceName'] = alliance_array[km['victim']['alliance']] if km['victim']['alliance'] != 0  else "Unknown"
+    km['victim']['allianceName'] = alliance_array[km['victim']['alliance']]
 
-    km['finalBlow']['name'] = char_array[km['finalBlow']['character']] if km['finalBlow']['character'] != 0 else "Unknown"
-    km['finalBlow']['corpName'] = corp_array[km['finalBlow']['corporation']] if km['finalBlow']['corporation'] != 0 else "Unknown"
-    km['finalBlow']['allianceName'] = alliance_array[km['finalBlow']['alliance']] if km['finalBlow']['alliance'] != 0 else "Unknown"
+    km['finalBlow']['name'] = char_array[km['finalBlow']['character']]
+    km['finalBlow']['corpName'] = corp_array[km['finalBlow']['corporation']]
+    km['finalBlow']['allianceName'] = alliance_array[km['finalBlow']['alliance']]
     km['finalBlow']['shipName'] = getItemName(km['finalBlow']['ship']) if km['finalBlow']['ship'] != 0 else "Unknown"
 
     for i in range(0,len(km['attackers'])):
-        km['attackers'][i]['name'] = char_array[km['attackers'][i]['character']] if km['attackers'][i]['character'] != 0  else "Unknown"
+        km['attackers'][i]['name'] = char_array[km['attackers'][i]['character']]
         #km['attackers'][i]['corpName'] = corp_array[km['attackers'][i]['corporation']]
         #km['attackers'][i]['allianceName'] = alliance_array[km['attackers'][i]['alliance']]
         km['attackers'][i]['shipName'] = getItemName(km['attackers'][i]['ship']) if km['attackers'][i]['ship'] != 0 else "Unknown"
