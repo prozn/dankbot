@@ -178,35 +178,40 @@ def fluffKillmail(km):
         alliances.add(character['alliance'])
 
     # Lists built, get the data from ESI
-    get_character_details = swagger.op['get_characters_names'](
-        character_ids=','.join(str(x) for x in characters if x != 0)
-    )
-    get_corporation_details = swagger.op['get_corporations_names'](
-        corporation_ids=','.join(str(x) for x in corporations if x != 0)
-    )
-    get_alliance_details = swagger.op['get_alliances_names'](
-        alliance_ids=','.join(str(x) for x in alliances if x != 0)
-    )
     get_system_details = swagger.op['get_universe_systems_system_id'](
         system_id=km['location']['id']
     )
-
-    char_array = {0: 'Unknown'}
-    char_name_list = esi.request(get_character_details)
-    for character in char_name_list.data:
-        char_array[character.character_id] = character.character_name
-
-    corp_array = {0: 'Unknown'}
-    corp_name_list = esi.request(get_corporation_details)
-    for corp in corp_name_list.data:
-        corp_array[corp.corporation_id] = corp.corporation_name
-
-    alliance_array = {0: 'Unknown'}
-    alliance_name_list = esi.request(get_alliance_details)
-    for alliance in alliance_name_list.data:
-        alliance_array[alliance.alliance_id] = alliance.alliance_name
-
     system_details = esi.request(get_system_details)
+
+    # Maximum number of characters we can request at once is 1000, get 900 to be safe
+    char_array = {0: 'Unknown'}
+    for characters_chunk in [list(characters)[i:i+900] for i in range(0,len(characters),900)]:
+        get_character_details = swagger.op['get_characters_names'](
+            character_ids=','.join(str(x) for x in characters_chunk if x != 0)
+        )
+        char_name_list = esi.request(get_character_details)
+        for character in char_name_list.data:
+            char_array[character.character_id] = character.character_name
+
+    # Maximum number of corporations we can request at once is 100, get 90 to be safe
+    corp_array = {0: 'Unknown'}
+    for corporations_chunk in [list(corporations)[i:i+90] for i in range(0,len(corporations),90)]:
+        get_corporation_details = swagger.op['get_corporations_names'](
+            corporation_ids=','.join(str(x) for x in corporations_chunk if x != 0)
+        )
+        corp_name_list = esi.request(get_corporation_details)
+        for corp in corp_name_list.data:
+            corp_array[corp.corporation_id] = corp.corporation_name
+
+    # Maximum number of alliances  we can request at once is 100, get 90 to be safe
+    alliance_array = {0: 'Unknown'}
+    for alliances_chunk in [list(alliances)[i:i+90] for i in range(0,len(alliances),90)]:
+        get_alliance_details = swagger.op['get_alliances_names'](
+            alliance_ids=','.join(str(x) for x in alliances_chunk if x != 0)
+        )
+        alliance_name_list = esi.request(get_alliance_details)
+        for alliance in alliance_name_list.data:
+            alliance_array[alliance.alliance_id] = alliance.alliance_name
 
     km['location']['name'] = system_details.data.name
 
