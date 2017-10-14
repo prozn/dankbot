@@ -26,7 +26,7 @@ sc = None
 
 def main(configpath="."):
 
-    global sc,swagger,esi
+    global sc, swagger, esi
 
     config.read("%s/config.ini" % configpath)
     searches.read("%s/searches.ini" % configpath)
@@ -101,11 +101,11 @@ def prepareKillmail(package):
 
 def cycleChannels(km):
     sentchannels = []
-    #Uncomment to send all kills to the first chan in the config file if the debug command line is set
-    #if args.debug:
-    #   sendKill('expensive',searches.sections()[0], km)
-    #   time.sleep(1)
-    #   return
+    # Uncomment to send all kills to the first chan in the config file if the debug command line is set
+    # if args.debug:
+    #    sendKill('expensive',searches.sections()[0], km)
+    #    time.sleep(1)
+    #    return
     for channel in searches.sections():
         logger.debug("Searching channel %s" % channel)
         if searches.get(channel, 'channel_name') in sentchannels:
@@ -138,7 +138,8 @@ def cycleChannels(km):
 
         if searches.getboolean(channel, 'post_losses') and \
                 km['victim'][searches.get(channel, 'zkill_search_type')] == searches.getint(channel, 'zkill_search_id'):
-            if len(searches.get(channel, 'loss_ship_type_ids')) > 0 and km['victim']['ship'] in map(int, searches.get(channel, 'loss_ship_type_ids').split(',')):
+            if len(searches.get(channel, 'loss_ship_type_ids')) > 0 and \
+                    km['victim']['ship'] in map(int, searches.get(channel, 'loss_ship_type_ids').split(',')):
                 sendKill('loss_ship', channel, km)
                 continue
             try:
@@ -165,7 +166,7 @@ def fluffKillmail(km):
     # For victim, finalBlow: corpName, allianceName
     # For location: name
     # Build lists of characters, corporations, alliances, ships and solar systems to get details for
-    characters,corporations,alliances,ships = (set([]),set([]),set([]),set([]))
+    characters, corporations, alliances, ships = (set([]), set([]), set([]), set([]))
 
     characters.add(km['victim']['character'])
     corporations.add(km['victim']['corporation'])
@@ -185,7 +186,7 @@ def fluffKillmail(km):
 
     # Maximum number of characters we can request at once is 1000, get 900 to be safe
     char_array = {0: 'Unknown'}
-    for characters_chunk in [list(characters)[i:i+900] for i in range(0,len(characters),900)]:
+    for characters_chunk in [list(characters)[i:i+900] for i in range(0, len(characters), 900)]:
         get_character_details = swagger.op['get_characters_names'](
             character_ids=','.join(str(x) for x in characters_chunk if x != 0)
         )
@@ -195,7 +196,7 @@ def fluffKillmail(km):
 
     # Maximum number of corporations we can request at once is 100, get 90 to be safe
     corp_array = {0: 'Unknown'}
-    for corporations_chunk in [list(corporations)[i:i+90] for i in range(0,len(corporations),90)]:
+    for corporations_chunk in [list(corporations)[i:i+90] for i in range(0, len(corporations), 90)]:
         get_corporation_details = swagger.op['get_corporations_names'](
             corporation_ids=','.join(str(x) for x in corporations_chunk if x != 0)
         )
@@ -205,7 +206,7 @@ def fluffKillmail(km):
 
     # Maximum number of alliances  we can request at once is 100, get 90 to be safe
     alliance_array = {0: 'Unknown'}
-    for alliances_chunk in [list(alliances)[i:i+90] for i in range(0,len(alliances),90)]:
+    for alliances_chunk in [list(alliances)[i:i+90] for i in range(0, len(alliances), 90)]:
         get_alliance_details = swagger.op['get_alliances_names'](
             alliance_ids=','.join(str(x) for x in alliances_chunk if x != 0)
         )
@@ -224,13 +225,12 @@ def fluffKillmail(km):
     km['finalBlow']['allianceName'] = alliance_array[km['finalBlow']['alliance']]
     km['finalBlow']['shipName'] = getItemName(km['finalBlow']['ship']) if km['finalBlow']['ship'] != 0 else "Unknown"
 
-    for i in range(0,len(km['attackers'])):
+    for i in range(0, len(km['attackers'])):
         km['attackers'][i]['name'] = char_array[km['attackers'][i]['character']]
-        #km['attackers'][i]['corpName'] = corp_array[km['attackers'][i]['corporation']]
-        #km['attackers'][i]['allianceName'] = alliance_array[km['attackers'][i]['alliance']]
         km['attackers'][i]['shipName'] = getItemName(km['attackers'][i]['ship']) if km['attackers'][i]['ship'] != 0 else "Unknown"
 
     return km
+
 
 def getItemName(id):
     idb = itemdb.cursor()
@@ -240,6 +240,7 @@ def getItemName(id):
     itemname = "Unknown (%s)" % id if itemname is None else itemname[0]
     idb.close()
     return itemname
+
 
 def sendKill(killtype, searchsection, km):
     km = fluffKillmail(km)
@@ -296,7 +297,8 @@ def sendKill(killtype, searchsection, km):
             {
                 'title': 'Killer',
                 'value': "%s (%s)" % (km['finalBlow'].get('name'),
-                                      km['finalBlow'].get('corpName') if km['finalBlow'].get('allianceName') == "Unknown"
+                                      km['finalBlow'].get('corpName')
+                                      if km['finalBlow'].get('allianceName') == "Unknown"
                                       else km['finalBlow'].get('allianceName')),
                 'short': True
             },
@@ -315,7 +317,7 @@ def sendKill(killtype, searchsection, km):
         'pretext': "*Solo Kill!!!*" if killtype == "solo"
         else "*No scrubs... no poors...*" if killtype[:4] == "loss" else "*Dank Frag!!!*",
         'title': '%s died in a %s worth %s ISK in %s' % (km['victim']['name'], km['victim']['shipName'],
-                                                   "{:,.0f}".format(km['value']), km['location']['name']),
+                                                         "{:,.0f}".format(km['value']), km['location']['name']),
         'title_link': '%s%s' % (config.get('killboard', 'kill_url'), km['id']),
         'fields': fields,
         'thumb_url': '%s%s_256.png' % (config.get('killboard', 'ship_renders'), km['victim']['ship']),
