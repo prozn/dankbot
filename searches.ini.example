@@ -62,4 +62,4 @@ include_carriers=
 include_dreads=
 include_faxes=
 include_blops=
-include_subcaps=
+include_all=

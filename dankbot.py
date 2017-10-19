@@ -98,67 +98,90 @@ def prepareKillmail(package):
     }
     return cleanMail
 
-
+# This function is a COMPLETE MESS and needs cleaning up at some point...
 def cycleChannels(km):
     sentchannels = []
-    # Uncomment to send all kills to the first chan in the config file if the debug command line is set
-    # if args.debug:
-    #    sendKill('expensive',searches.sections()[0], km)
-    #    time.sleep(1)
-    #    return
     for channel in searches.sections():
         logger.debug("Searching channel %s" % channel)
-        if searches.get(channel, 'channel_name') in sentchannels:
-            logger.debug("Killmail has already been sent to channel %s, skipping."
-                         % searches.get(channel, 'channel_name'))
-            continue
-
-        if searches.getboolean(channel, 'include_capsules') is False and \
-                km['victim']['ship'] in map(int, config.get('killboard', 'capsule_type_ids').split(',')):
-            logger.debug("Kill is a pod and pods are ignored by config.")
-            continue
-
-        if km['victim']['ship'] in map(int, config.get('killboard', 'capsule_type_ids').split(',')) and \
-                km['value'] < searches.getfloat(channel, 'minimum_capsule_value'):
-            logger.debug("Kill is a pod and value is below minimum capsule value in config.")
-            continue
-
-        if any(a[searches.get(channel, 'zkill_search_type')]
-                in map(int, searches.get(channel, 'zkill_search_id').split(',')) for a in km['attackers']):
-            if km['solo'] is True:
-                sendKill('solo', channel, km)
-                sentchannels.append(searches.get(channel, 'channel_name'))
+        if not searches.has_option(channel,'is_intel_search') or not searches.getboolean(channel,'is_intel_search'):
+            if searches.get(channel, 'channel_name') in sentchannels:
+                logger.debug("Killmail has already been sent to channel %s, skipping."
+                             % searches.get(channel, 'channel_name'))
                 continue
 
-            if km['value'] >= searches.getfloat(channel, 'expensive_kill_limit'):
-                sendKill('expensive', channel, km)
+            if searches.getboolean(channel, 'include_capsules') is False and \
+                    km['victim']['ship'] in map(int, config.get('killboard', 'capsule_type_ids').split(',')):
+                logger.debug("Kill is a pod and pods are ignored by config.")
                 continue
 
-            logger.debug("Matching kill found for channel (%s) but it was not solo or expensive" % channel)
-
-        if searches.getboolean(channel, 'post_losses') and \
-                km['victim'][searches.get(channel, 'zkill_search_type')] == searches.getint(channel, 'zkill_search_id'):
-            if len(searches.get(channel, 'loss_ship_type_ids')) > 0 and \
-                    km['victim']['ship'] in map(int, searches.get(channel, 'loss_ship_type_ids').split(',')):
-                sendKill('loss_ship', channel, km)
+            if km['victim']['ship'] in map(int, config.get('killboard', 'capsule_type_ids').split(',')) and \
+                    km['value'] < searches.getfloat(channel, 'minimum_capsule_value'):
+                logger.debug("Kill is a pod and value is below minimum capsule value in config.")
                 continue
-            try:
-                if searches.getboolean(channel, 'loss_value') is False:
-                    pass
-                else:
-                    logger.warning("Loss value config param evaluated to True"
-                                   " - permitted settings are False or numerical")
-                    pass
-            except ValueError:
-                if km['value'] >= searches.getfloat(channel, 'loss_value'):
-                    sendKill('loss_expensive', channel, km)
+
+            if any(a[searches.get(channel, 'zkill_search_type')]
+                    in map(int, searches.get(channel, 'zkill_search_id').split(',')) for a in km['attackers']):
+                if km['solo'] is True:
+                    sendKill('solo', channel, km)
+                    sentchannels.append(searches.get(channel, 'channel_name'))
                     continue
 
-        if km['victim']['ship'] in map(int, config.get('killboard', 'super_type_ids').split(',')) and \
-                searches.getboolean(channel, 'post_all_super_kills'):
-            sendKill('super', channel, km)
-            continue
+                if km['value'] >= searches.getfloat(channel, 'expensive_kill_limit'):
+                    sendKill('expensive', channel, km)
+                    continue
 
+                logger.debug("Matching kill found for channel (%s) but it was not solo or expensive" % channel)
+
+            if searches.getboolean(channel, 'post_losses') and \
+                    km['victim'][searches.get(channel, 'zkill_search_type')] == searches.getint(channel, 'zkill_search_id'):
+                if len(searches.get(channel, 'loss_ship_type_ids')) > 0 and \
+                        km['victim']['ship'] in map(int, searches.get(channel, 'loss_ship_type_ids').split(',')):
+                    sendKill('loss_ship', channel, km)
+                    continue
+                try:
+                    if searches.getboolean(channel, 'loss_value') is False:
+                        pass
+                    else:
+                        logger.warning("Loss value config param evaluated to True"
+                                       " - permitted settings are False or numerical")
+                        pass
+                except ValueError:
+                    if km['value'] >= searches.getfloat(channel, 'loss_value'):
+                        sendKill('loss_expensive', channel, km)
+                        continue
+
+            if km['victim']['ship'] in map(int, config.get('killboard', 'super_type_ids').split(',')) and \
+                    searches.getboolean(channel, 'post_all_super_kills'):
+                sendKill('super', channel, km)
+                continue
+        else:
+            ships_to_search = set([])
+            if searches.getboolean(channel,'include_supers'):
+                ships_to_search.update(list(map(int, config.get('killboard','super_type_ids').split(','))))
+            if searches.getboolean(channel,'include_carriers'):
+                ships_to_search.update(list(map(int, config.get('killboard','carrier_type_ids').split(','))))
+            if searches.getboolean(channel,'include_dreads'):
+                ships_to_search.update(list(map(int, config.get('killboard','dreadnaught_type_ids').split(','))))
+            if searches.getboolean(channel,'include_faxes'):
+                ships_to_search.update(list(map(int, config.get('killboard','fax_type_ids').split(','))))
+            if searches.getboolean(channel,'include_blops'):
+                ships_to_search.update(list(map(int, config.get('killboard','blops_type_ids').split(','))))
+
+            # logger.debug(','.join(map(str, ships_to_search)))
+
+            if searches.getboolean(channel,'post_kills') and any(a[searches.get(channel, 'zkill_search_type')] in \
+                    map(int, searches.get(channel, 'zkill_search_id').split(',')) for a in km['attackers']):
+                if searches.getboolean(channel, 'include_all') or any(int(b['ship']) in ships_to_search for b in km['attackers']):
+                    sendKill('intel', channel, km)
+                else:
+                    logger.debug("Kill was found but not by an interesting ship.")
+
+            if searches.getboolean(channel, 'post_losses') and \
+                    km['victim'][searches.get(channel,'zkill_search_type')] == searches.get(channel, 'zkill_search_id'):
+                if searches.getboolean(channel, 'include_all') or int(km['victim']['ship']) in ships_to_search:
+                    sendKill('intel', channel, km)
+                else:
+                    logger.debug("Kill was found but not by an interesting ship.")
 
 def fluffKillmail(km):
     # Call ESI API and add:
@@ -244,10 +267,10 @@ def getItemName(id):
 
 def sendKill(killtype, searchsection, km):
     km = fluffKillmail(km)
-    if killtype == "expensive":
+    if killtype == "expensive" or killtype == "intel":
         fields = [
             {
-                'title': 'Involved Players',
+                'title': "Involved Players (%s)" % len(km['attackers']),
                 'value': '\n'.join(["{name} ({shipName})".format(**a) for a in km['attackers']
                                    if a[searches.get(searchsection, 'zkill_search_type')]
                                    == int(searches.get(searchsection, 'zkill_search_id'))]),
@@ -315,7 +338,7 @@ def sendKill(killtype, searchsection, km):
             config.get('killboard', 'kill_url'), km['id']),
         'color': 'danger' if killtype != 'super' else 'warning',
         'pretext': "*Solo Kill!!!*" if killtype == "solo"
-        else "*No scrubs... no poors...*" if killtype[:4] == "loss" else "*Dank Frag!!!*",
+        else "*No scrubs... no poors...*" if killtype[:4] == "loss" else "*Intel*" if killtype == "intel" else "*Dank Frag!!!*",
         'title': '%s died in a %s worth %s ISK in %s' % (km['victim']['name'], km['victim']['shipName'],
                                                          "{:,.0f}".format(km['value']), km['location']['name']),
         'title_link': '%s%s' % (config.get('killboard', 'kill_url'), km['id']),
