@@ -9,3 +9,11 @@ ship_renders=https://image.eveonline.com/Render/
 capsule_type_ids=670,33328
 ; Avatar, Erebus, Ragnarok, Leviathan, Vanquisher, Aeon, Wyvern, Nyx, Hel, Revenant, Vendetta, Vehement
 super_type_ids=11567,671,23773,3764,42126,23919,23917,23913,22852,3514,42125,42124
+; Archon, Nidhoggur, Chimera, Thanatos, Vanguard
+carrier_type_ids=23757,24483,23915,23911,42132
+; Ninazu, Apostle, Lif, Minokawa, Dagon, Venerable, Guristas Fax
+fax_type_ids=37607,37604,37606,37605,42242,42133,45645
+; Revelation, Naglafar, Moros, Phoenix, Chemosh, Moros Interbus Edition, Naglfar Justice Edition, Phoenix Wiyrkomi Edition, Revelation Sarum Edition, Vehement
+dreadnaught_type_ids=19720,19722,19724,19726,42243,34339,34341,34343,34345,42124
+; Panther, Redeemer, Sin, Widow, Marshal
+blops_type_ids=22440,22428,22430,22436,44996

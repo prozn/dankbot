@@ -3,7 +3,9 @@
 ;
 ; Section names are not important, all sections will be iterated.
 ;
-; All sections require the following parameteres, otherwise the bot will fail to start:
+; All sections require the following parameters, otherwise the bot will fail to start:
+;
+; Standard configuration (for posting a specific corp or alliance's kills and losses to slack)
 ;
 ; zkill_search_type        (character/corporation/alliance)
 ; zkill_search_id          (zKill ID for the search type - can take multiple values separated by ,)
@@ -17,6 +19,21 @@
 ; post_losses              (true/false - configuration can be used to send shameful losses to slack)
 ; loss_ship_type_ids       (IDs - separate with , - ships to monitor for losses.... eg. ratting VNIs)
 ; loss_value               (false/numeric - ships above this value will be monitored for losses (ignoring ship type))
+;
+; Intel configuration (for posting all kills/losses by an alliance filtered by different important ship types)
+;
+; is_intel_search         (specifies an intel search)
+; zkill_search_type       (character/corporation/alliance)
+; zkill_search_id         (zKill ID for the search type - can take multiple values separated by ,)
+; channel_name            (name of the Slack channel to post kills to)
+; post_kills              (true/false)
+; post_losses             (true/false)
+; include_supers          (true/false)
+; include_carriers        (true/false)
+; include_dreads          (true/false)
+; include_faxes           (true/false)
+; include_blops           (true/false)
+; include_subcaps         (true/false)
 
 [Perkone]
 zkill_search_type=corporation
@@ -31,3 +48,18 @@ post_all_super_kills=false
 post_losses=false
 loss_ship_type_ids=
 loss_value=false
+
+; Intel Style Config
+[PL]
+is_intel_search=true
+zkill_search_type=
+zkill_search_id=
+channel_name=
+post_kills=
+post_losses=
+include_supers=
+include_carriers=
+include_dreads=
+include_faxes=
+include_blops=
+include_subcaps=
