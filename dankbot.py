@@ -156,16 +156,20 @@ def cycleChannels(km):
                 continue
         else:
             ships_to_search = set([])
-            if searches.getboolean(channel,'include_supers'):
-                ships_to_search.update(list(map(int, config.get('killboard','super_type_ids').split(','))))
-            if searches.getboolean(channel,'include_carriers'):
-                ships_to_search.update(list(map(int, config.get('killboard','carrier_type_ids').split(','))))
-            if searches.getboolean(channel,'include_dreads'):
-                ships_to_search.update(list(map(int, config.get('killboard','dreadnaught_type_ids').split(','))))
-            if searches.getboolean(channel,'include_faxes'):
-                ships_to_search.update(list(map(int, config.get('killboard','fax_type_ids').split(','))))
-            if searches.getboolean(channel,'include_blops'):
-                ships_to_search.update(list(map(int, config.get('killboard','blops_type_ids').split(','))))
+            if ( searches.getboolean(channel,'post_kills') \
+                    and any(a[searches.get(channel, 'zkill_search_type')] in map(int, searches.get(channel, 'zkill_search_id').split(',')) for a in km['attackers']) ) \
+                    or ( searches.getboolean(channel,'post_kills') and any(a[searches.get(channel, 'zkill_search_type')] in \
+                    map(int, searches.get(channel, 'zkill_search_id').split(',')) for a in km['attackers']) ):
+                if searches.getboolean(channel,'include_supers'):
+                    ships_to_search.update(list(map(int, config.get('killboard','super_type_ids').split(','))))
+                if searches.getboolean(channel,'include_carriers'):
+                    ships_to_search.update(list(map(int, config.get('killboard','carrier_type_ids').split(','))))
+                if searches.getboolean(channel,'include_dreads'):
+                    ships_to_search.update(list(map(int, config.get('killboard','dreadnaught_type_ids').split(','))))
+                if searches.getboolean(channel,'include_faxes'):
+                    ships_to_search.update(list(map(int, config.get('killboard','fax_type_ids').split(','))))
+                if searches.getboolean(channel,'include_blops'):
+                    ships_to_search.update(list(map(int, config.get('killboard','blops_type_ids').split(','))))
 
             # logger.debug(','.join(map(str, ships_to_search)))
 
