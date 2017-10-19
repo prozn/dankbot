@@ -184,9 +184,9 @@ def fluffKillmail(km):
     )
     system_details = esi.request(get_system_details)
 
-    # Maximum number of characters we can request at once is 1000, get 900 to be safe
+    # Maximum number of characters we can request at once is 100, get 90 to be safe
     char_array = {0: 'Unknown'}
-    for characters_chunk in [list(characters)[i:i+900] for i in range(0, len(characters), 900)]:
+    for characters_chunk in [list(characters)[i:i+90] for i in range(0, len(characters), 90)]:
         get_character_details = swagger.op['get_characters_names'](
             character_ids=','.join(str(x) for x in characters_chunk if x != 0)
         )
